@@ -1,0 +1,109 @@
+services:
+  wp:
+    build:
+      context: .
+      target: base
+      args:
+        DOMAIN: ${DOMAIN}
+        IP: "${IP}.20"
+    # pull_policy: "always"
+    ports:
+      # - "8080:80"
+      - "443:443"
+    depends_on:
+      db:
+        condition: service_healthy
+        restart: true
+        required: true
+      phpmyadmin:
+        condition: service_started
+        required: true
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: ""
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DEBUG: true
+      WORDPRESS_DEBUG_LOG: true
+    volumes:
+      - ./sjaakies-great-dnd-helper:/var/www/html/wp-content/plugins/sjaakies-great-dnd-helper
+      - ./debug:/var/www/html/wp-content/logs
+      - ./phpunit/tests:/var/www/html/wordpress-tests/
+      # mount the wordpress folder for the SFTP to work
+      - ./wordpress:/var/www/html/
+      - ./config/html.conf:/etc/apache2/sites-available/000-default.conf
+      - ./config/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini
+      - ./config/error-logging.ini:/usr/local/etc/php/conf.d/error-logging.ini
+    networks:
+      std-dev:
+        ipv4_address: "${IP}.20"
+  db:
+    image: "mysql:latest"
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    networks:
+      std-dev:
+        ipv4_address: "${IP}.21"
+
+  phpmyadmin:
+    image: "phpmyadmin:latest"
+    ports:
+      - "8181:80"
+    depends_on:
+      - db
+    environment:
+      PMA_PORT: 3306
+      PMA_HOST: db
+    networks:
+      std-dev:
+        ipv4_address: "${IP}.22"
+
+  phpunit:
+    build:
+      context: .
+      target: phpunit
+      args:
+        DOMAIN: ${DOMAIN}
+    volumes:
+      # - ./allergens-dietary-pro:/var/www/html/wp-content/plugins/allergens-dietary-pro
+      - ./phpunit/tests:/var/www/html/wordpress-tests/
+    depends_on:
+      - wp
+    networks:
+      std-dev:
+
+  sftp:
+      build:
+       context: .
+       target: sftp
+       args:
+        User: ${SFTP_User}
+        # dom: ${DOMAIN}
+      ports:
+        - "2222:22"
+      volumes:
+        - ./wordpress:/home/${SFTP_User}/wordpress
+      environment:
+        SFTP_USERS: "${SFTP_User}:${SFTP_Password}:33"
+        SFTP_User: ${SFTP_User}
+      profiles: ["sftp"]
+      networks:
+        std-dev:
+          ipv4_address: "${IP}.23"
+      
+networks:
+  std-dev:
+    ipam:
+      driver: default
+      config:
+        - subnet: "${IP}.0/24"
+  # Hier een ander netwerk voor bijvoorbeeld een test database
+
+
