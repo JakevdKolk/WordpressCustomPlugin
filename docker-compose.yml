@@ -26,7 +26,7 @@ services:
       WORDPRESS_DEBUG: true
       WORDPRESS_DEBUG_LOG: true
     volumes:
-      - ./sjaakies-great-dnd-helper:/var/www/html/wp-content/plugins/sjaakies-great-dnd-helper
+      - ./sjaakies-funny-joke-plugin:/var/www/html/wp-content/plugins/sjaakies-funny-joke-plugin
       - ./debug:/var/www/html/wp-content/logs
       - ./phpunit/tests:/var/www/html/wordpress-tests/
       # mount the wordpress folder for the SFTP to work
@@ -46,7 +46,7 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p"]
       interval: 1m30s
       timeout: 30s
-      retries: 5
+      retries: 5g
       start_period: 30s
     networks:
       std-dev:
@@ -80,24 +80,24 @@ services:
       std-dev:
 
   sftp:
-      build:
-       context: .
-       target: sftp
-       args:
+    build:
+      context: .
+      target: sftp
+      args:
         User: ${SFTP_User}
         # dom: ${DOMAIN}
-      ports:
-        - "2222:22"
-      volumes:
-        - ./wordpress:/home/${SFTP_User}/wordpress
-      environment:
-        SFTP_USERS: "${SFTP_User}:${SFTP_Password}:33"
-        SFTP_User: ${SFTP_User}
-      profiles: ["sftp"]
-      networks:
-        std-dev:
-          ipv4_address: "${IP}.23"
-      
+    ports:
+      - "2222:22"
+    volumes:
+      - ./wordpress:/home/${SFTP_User}/wordpress
+    environment:
+      SFTP_USERS: "${SFTP_User}:${SFTP_Password}:33"
+      SFTP_User: ${SFTP_User}
+    profiles: ["sftp"]
+    networks:
+      std-dev:
+        ipv4_address: "${IP}.23"
+
 networks:
   std-dev:
     ipam:
@@ -105,5 +105,3 @@ networks:
       config:
         - subnet: "${IP}.0/24"
   # Hier een ander netwerk voor bijvoorbeeld een test database
-
-
