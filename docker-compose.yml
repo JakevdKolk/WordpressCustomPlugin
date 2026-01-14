@@ -46,7 +46,7 @@ services:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p"]
       interval: 1m30s
       timeout: 30s
-      retries: 5g
+      retries: 5
       start_period: 30s
     networks:
       std-dev:
